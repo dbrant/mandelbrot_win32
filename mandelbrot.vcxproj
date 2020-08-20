@@ -142,10 +142,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="mandelbrot.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mandelbrot.cpp" />
