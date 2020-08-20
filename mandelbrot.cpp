@@ -4,22 +4,25 @@
 #include <windows.h>
 #include <commctrl.h>
 
-// C RunTime Header Files
-//#include <stdlib.h>
-//#include <malloc.h>
-//#include <memory.h>
-#include <tchar.h>
-
 #include "resource.h"
 
 extern "C"
 {
-    // required by compiler for floating-point usage.
+    // required by the compiler for floating-point usage.
     int _fltused;
 }
 
 #define NUM_THREADS 4
+
 #define WM_REPAINT_MAIN WM_USER+1
+
+typedef struct ThreadParams {
+    HWND hWnd;
+    int id;
+    int startRow;
+    int rowCount;
+} THREADPARAMS, * PTHREADPARAMS;
+
 
 // Global Variables:
 HINSTANCE hInst;
@@ -28,6 +31,7 @@ HWND mainWindow;
 int bmpWidth;
 int bmpHeight;
 
+// Our bitmap's pixels will be addressable as ints, which is super efficient.
 int* bmpBits = NULL;
 int bmpSizeAllocated = 0;
 BITMAPINFO bmpInfo;
@@ -39,13 +43,6 @@ double xCenter = -0.5;
 double yCenter = 0.0;
 double xExtent = 3.0;
 int numIterations = 256;
-
-typedef struct ThreadParams {
-    HWND hWnd;
-    int id;
-    int startRow;
-    int rowCount;
-} THREADPARAMS, * PTHREADPARAMS;
 
 PTHREADPARAMS threadParams[NUM_THREADS];
 HANDLE threads[NUM_THREADS];
@@ -69,6 +66,7 @@ INT_PTR CALLBACK    ConfigDlgProc(HWND, UINT, WPARAM, LPARAM);
   "language='*'\"")
 
 
+// The actual entry point of the program, which will in turn call WinMain.
 void WinMainCRTStartup()
 {
     STARTUPINFO StartupInfo;
@@ -82,6 +80,7 @@ void WinMainCRTStartup()
     ExitProcess(ret);
 }
 
+// Thread function that computes a chunk of the mandelbrot image.
 DWORD WINAPI MandelbrotThreadProc(LPVOID lpParam) {
     int viewWidth = bmpWidth;
     int viewHeight = bmpHeight;
@@ -138,7 +137,10 @@ DWORD WINAPI MandelbrotThreadProc(LPVOID lpParam) {
     return 0;
 }
 
-void recreateBitmap(HWND hwnd) {
+// Function that triggers (re)creation of the bitmap and starts the threads that draw onto it.
+void RecreateBitmap(HWND hwnd) {
+
+    // Resize our bitmap to fit the size of the given window.
     RECT rect;
     GetClientRect(hwnd, &rect);
     bmpWidth = rect.right;
@@ -201,8 +203,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     UNREFERENCED_PARAMETER(lpCmdLine);
     hInst = hInstance;
 
-
-    // initialize our color palette
+    // Initialize our color palette with some color gradients.
     colorPalette = (int*)HeapAlloc(GetProcessHeap(), 0, colorPaletteSize * sizeof(int));
     int colorLevel;
     for (int i = 0; i < 64; i++) {
@@ -213,16 +214,15 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         colorPalette[i + 192] = ((255 - colorLevel) << 8) | 0xFF;
     }
 
-    // initialize thread params
+    // Initialize thread params.
     for (int i = 0; i < NUM_THREADS; i++) {
         threads[i] = INVALID_HANDLE_VALUE;
         threadParams[i] = (PTHREADPARAMS)HeapAlloc(GetProcessHeap(), 0, sizeof(THREADPARAMS));
     }
 
-
+    // Create our main dialog window and show it!
     mainWindow = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG_MAIN), 0, MainDlgProc, 0);
     ShowWindow(mainWindow, nCmdShow);
-
 
     // Main message loop:
     MSG msg;
@@ -232,14 +232,14 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         DispatchMessage(&msg);
     }
 
-
+    // Free whatever we allocated.
     HeapFree(GetProcessHeap(), 0, bmpBits);
     HeapFree(GetProcessHeap(), 0, colorPalette);
     for (int i = 0; i < NUM_THREADS; i++) {
         HeapFree(GetProcessHeap(), 0, threadParams[i]);
     }
 
-    return (int) msg.wParam;
+    return (int)msg.wParam;
 }
 
 
@@ -255,7 +255,7 @@ INT_PTR CALLBACK MainDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
         ShowWindow(configWnd, SW_SHOW);
     }
     case WM_SIZE:
-        recreateBitmap(hDlg);
+        RecreateBitmap(hDlg);
         return TRUE;
 
     case WM_REPAINT_MAIN:
@@ -283,7 +283,7 @@ INT_PTR CALLBACK MainDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
             prevMouseY = y;
 
             InvalidateRect(hDlg, NULL, false);
-            recreateBitmap(hDlg);
+            RecreateBitmap(hDlg);
         }
         return TRUE;
 
@@ -313,7 +313,7 @@ INT_PTR CALLBACK MainDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
         yCenter = ymin + xExtent / aspect / 2.0;
 
         InvalidateRect(hDlg, NULL, false);
-        recreateBitmap(hDlg);
+        RecreateBitmap(hDlg);
     }
     return TRUE;
 
@@ -364,15 +364,15 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
         SendMessage(slider, TBM_SETPAGESIZE, 0, 32);
         SendMessage(slider, TBM_SETPOS, TRUE, 256);
     }
-    return (INT_PTR)TRUE;
+    return TRUE;
 
     case WM_HSCROLL:
     {
         LRESULT pos = SendMessageW(GetDlgItem(hDlg, IDC_SLIDER_ITER), TBM_GETPOS, 0, 0);
         numIterations = pos;
-        recreateBitmap(mainWindow);
+        RecreateBitmap(mainWindow);
     }
-    return (INT_PTR)TRUE;
+    return TRUE;
 
     case WM_COMMAND:
         int wmId = LOWORD(wParam);
@@ -382,9 +382,9 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
         case IDOK:
         case IDCANCEL:
             EndDialog(hDlg, LOWORD(wParam));
-            return (INT_PTR)TRUE;
+            return TRUE;
         }
     }
 
-    return (INT_PTR)FALSE;
+    return FALSE;
 }
