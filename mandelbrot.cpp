@@ -19,14 +19,10 @@ extern "C"
 }
 
 #define NUM_THREADS 4
-#define MAX_LOADSTRING 100
 #define WM_REPAINT_MAIN WM_USER+1
 
 // Global Variables:
-HINSTANCE hInst;                                // current instance
-WCHAR szTitle[MAX_LOADSTRING];                  // The title bar text
-WCHAR szWindowClass[MAX_LOADSTRING];            // the main window class name
-
+HINSTANCE hInst;
 HWND mainWindow;
 
 int bmpWidth;
@@ -224,26 +220,16 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     }
 
 
-    // Initialize global strings
-    LoadString(hInstance, IDS_APP_TITLE, szTitle, MAX_LOADSTRING);
-    LoadString(hInstance, IDC_WINAPP, szWindowClass, MAX_LOADSTRING);
-
-
     mainWindow = CreateDialogParam(hInst, MAKEINTRESOURCE(IDD_DIALOG_MAIN), 0, MainDlgProc, 0);
     ShowWindow(mainWindow, nCmdShow);
 
 
-    MSG msg;
-    HACCEL hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINAPP2));
-
     // Main message loop:
+    MSG msg;
     while (GetMessage(&msg, nullptr, 0, 0))
     {
-        if (!TranslateAccelerator(msg.hwnd, hAccelTable, &msg))
-        {
-            TranslateMessage(&msg);
-            DispatchMessage(&msg);
-        }
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
 
 
@@ -336,10 +322,6 @@ INT_PTR CALLBACK MainDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
         int wmId = LOWORD(wParam);
         switch (wmId)
         {
-        //case IDM_FILE_CONFIGURE:
-        //    DialogBox(hInst, MAKEINTRESOURCE(IDD_CONFIGBOX), hDlg, ConfigDlgProc);
-        //    break;
-
         case IDM_EXIT:
         case IDOK:
         case IDCANCEL:
@@ -354,8 +336,8 @@ INT_PTR CALLBACK MainDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lPar
         PAINTSTRUCT ps;
         HDC hdc = BeginPaint(hDlg, &ps);
 
+        // write the bitmap to the screen in the fastest way possible.
         SetDIBitsToDevice(hdc, 0, 0, bmpWidth, bmpHeight, 0, 0, 0, bmpHeight, bmpBits, &bmpInfo, DIB_RGB_COLORS);
-        //StretchDIBits(hdc, 0, 0, bmpWidth, bmpHeight, 0, 0, bmpWidth, bmpHeight, bmpBits, &bmpInfo, DIB_RGB_COLORS, SRCCOPY);
 
         EndPaint(hDlg, &ps);
     }
@@ -388,7 +370,6 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
     {
         LRESULT pos = SendMessageW(GetDlgItem(hDlg, IDC_SLIDER_ITER), TBM_GETPOS, 0, 0);
         numIterations = pos;
-
         recreateBitmap(mainWindow);
     }
     return (INT_PTR)TRUE;
