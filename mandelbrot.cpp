@@ -1,5 +1,11 @@
+/*
+Mandelbrot explorer for native Windows (32 or 64-bit), not using any runtime libraries!
+
+Copyright 2020 Dmitry Brant.
+*/
+
 #include "targetver.h"
-#define WIN32_LEAN_AND_MEAN             // Exclude rarely-used stuff from Windows headers
+#define WIN32_LEAN_AND_MEAN
 // Windows Header Files
 #include <windows.h>
 #include <commctrl.h>
