@@ -375,7 +375,7 @@ INT_PTR CALLBACK ConfigDlgProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lP
     case WM_HSCROLL:
     {
         LRESULT pos = SendMessageW(GetDlgItem(hDlg, IDC_SLIDER_ITER), TBM_GETPOS, 0, 0);
-        numIterations = pos;
+        numIterations = (int)pos;
         RecreateBitmap(mainWindow);
     }
     return TRUE;
