@@ -18,7 +18,7 @@ extern "C"
     int _fltused;
 }
 
-#define NUM_THREADS 4
+#define NUM_THREADS 12
 
 #define WM_REPAINT_MAIN WM_USER+1
 
